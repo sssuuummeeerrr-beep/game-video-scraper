@@ -1,0 +1,33 @@
+name: 每日游戏视频抓取
+
+on:
+  schedule:
+    # 北京时间每天 18:00 (UTC 10:00)
+    - cron: "0 10 * * *"
+  # 也支持手动触发（在 GitHub Actions 页面点按钮）
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run scraper
+        env:
+          FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
+          FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
+          BITABLE_APP_TOKEN: ${{ secrets.BITABLE_APP_TOKEN }}
+          BITABLE_TABLE_ID: ${{ secrets.BITABLE_TABLE_ID }}
+          DOUYIN_API_KEY: ${{ secrets.DOUYIN_API_KEY }}
+          DOUYIN_API_SECRET: ${{ secrets.DOUYIN_API_SECRET }}
+        run: python main.py
