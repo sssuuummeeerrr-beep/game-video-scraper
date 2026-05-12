@@ -1,7 +1,7 @@
 """主入口 — 抓取B站+抖音游戏爆款视频 → 写入飞书多维表格（每日子表）"""
 
 from datetime import datetime
-from scraper import fetch_bilibili_hot, fetch_douyin_hot
+from scraper import fetch_bilibili_hot, fetch_douyin_hot, analyze_videos
 from feishu_writer import FeishuBitable
 from config import (
     BITABLE_APP_TOKEN,
@@ -50,7 +50,12 @@ def main():
         print(f"   {i+1}. [{v['来源']}] {emoji} {v['视频标题'][:50]} "
               f"| 播放{v['播放量']:,} | 赞{v['点赞量']:,}")
 
-    # ── 3. 写入飞书（按日期创建子表） ──
+    # ── 3. 分析爆款原因与优化建议 ──
+    print(f"\n📊 分析爆款原因与优化建议...")
+    hot_videos = analyze_videos(hot_videos)
+    print(f"   完成 {len(hot_videos)} 条分析")
+
+    # ── 4. 写入飞书（按日期创建子表） ──
     print(f"\n📊 写入飞书多维表格 → 子表「{today}」...")
     feishu = FeishuBitable()
     table_id = feishu.get_or_create_table(BITABLE_APP_TOKEN, today)
