@@ -2,7 +2,7 @@
 
 import requests
 from datetime import datetime
-from config import MAX_VIDEOS_PER_SOURCE
+from config import MAX_VIDEOS_PER_SOURCE, BILIBILI_GAMING_TAGS
 
 BILIBILI_POPULAR_API = "https://api.bilibili.com/x/web-interface/popular"
 GAMING_RID = 4  # 游戏分区 ID
@@ -14,10 +14,12 @@ HEADERS = {
 
 
 def fetch_bilibili_hot(max_count: int = MAX_VIDEOS_PER_SOURCE) -> list[dict]:
-    """抓取B站游戏分区热门视频，返回标准化字段列表"""
+    """抓取B站游戏分区热门视频，仅保留游戏标签的子分类"""
     videos = []
     page = 1
-    while len(videos) < max_count:
+    max_pages = 20  # 安全上限，避免无限翻页
+
+    while len(videos) < max_count and page <= max_pages:
         params = {"ps": 50, "pn": page, "rid": GAMING_RID}
         resp = requests.get(BILIBILI_POPULAR_API, params=params, headers=HEADERS, timeout=15)
         data = resp.json()
@@ -30,22 +32,26 @@ def fetch_bilibili_hot(max_count: int = MAX_VIDEOS_PER_SOURCE) -> list[dict]:
             break
 
         for v in items:
+            tname = v.get("tname", "")
+            if tname not in BILIBILI_GAMING_TAGS:
+                continue  # 跳过非游戏标签视频
+
             stat = v.get("stat", {})
             owner = v.get("owner", {})
             videos.append({
-                "source": "B站",
-                "video_id": v.get("bvid", ""),
-                "title": v.get("title", ""),
-                "author": owner.get("name", ""),
-                "play_count": stat.get("view", 0),
-                "like_count": stat.get("like", 0),
-                "comment_count": stat.get("reply", 0),
-                "share_count": stat.get("share", 0),
-                "favorite_count": stat.get("favorite", 0),
-                "duration_sec": v.get("duration", 0),
-                "tags": v.get("tname", ""),
-                "url": f"https://www.bilibili.com/video/{v.get('bvid', '')}",
-                "fetch_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "来源": "B站",
+                "视频ID": v.get("bvid", ""),
+                "视频标题": v.get("title", ""),
+                "UP主": owner.get("name", ""),
+                "播放量": stat.get("view", 0),
+                "点赞量": stat.get("like", 0),
+                "评论数": stat.get("reply", 0),
+                "分享数": stat.get("share", 0),
+                "收藏数": stat.get("favorite", 0),
+                "时长(秒)": v.get("duration", 0),
+                "标签": tname,
+                "视频链接": f"https://www.bilibili.com/video/{v.get('bvid', '')}",
+                "抓取时间": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             })
 
         page += 1
